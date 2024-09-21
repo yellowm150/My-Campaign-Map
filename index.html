@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Campaign Interactive Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #map-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ccc;
+            margin-top: 20px;
+        }
+
+        #map {
+            max-width: 90%;
+            height: auto;
+            cursor: pointer;
+        }
+
+        .poi-marker {
+            position: absolute;
+            background-color: red;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .poi-label {
+            display: none;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            font-size: 12px;
+            color: #333;
+            z-index: 10;
+        }
+
+        .poi-marker:hover + .poi-label,
+        .poi-marker:focus + .poi-label {
+            display: block;
+        }
+
+        input[type="file"] {
+            margin-top: 20px;
+        }
+
+        label, select {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>D&D Campaign Interactive Map</h1>
+    <p>Upload your campaign map and mark the Points of Interest (POIs).</p>
+
+    <!-- Image Upload -->
+    <input type="file" id="image-upload" accept="image/*"><br><br>
+
+    <!-- Font Selector -->
+    <label for="font-select">Choose a Font:</label>
+    <select id="font-select">
+        <option value="Arial">Arial</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+    </select><br><br>
+
+    <!-- Map Container -->
+    <div id="map-container">
+        <img id="map" src="" alt="Campaign Map" />
+    </div>
+
+    <script>
+        // Handle image upload
+        const map = document.getElementById('map');
+        const imageUpload = document.getElementById('image-upload');
+        const mapContainer = document.getElementById('map-container');
+
+        imageUpload.addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                map.src = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // Handle POI Marker Creation
+        map.addEventListener('click', function (e) {
+            const xPos = e.pageX - mapContainer.offsetLeft;
+            const yPos = e.pageY - mapContainer.offsetTop;
+            const poiName = prompt("Enter the name of this Point of Interest:");
+
+            if (poiName) {
+                const marker = document.createElement('div');
+                marker.classList.add('poi-marker');
+                marker.style.left = xPos + 'px';
+                marker.style.top = yPos + 'px';
+
+                const label = document.createElement('div');
+                label.classList.add('poi-label');
+                label.style.left = xPos + 15 + 'px';
+                label.style.top = yPos - 15 + 'px';
+                label.textContent = poiName;
+
+                mapContainer.appendChild(marker);
+                mapContainer.appendChild(label);
+            }
+        });
+
+        // Change Font Style
+        const fontSelect = document.getElementById('font-select');
+        fontSelect.addEventListener('change', function () {
+            document.body.style.fontFamily = fontSelect.value;
+        });
+    </script>
+</body>
+</html>
