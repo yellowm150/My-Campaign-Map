@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Campaign Interactive Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #map-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #ccc;
+            margin-top: 20px;
+        }
+
+        #map {
+            max-width: 90%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .poi-area {
+            position: absolute;
+            border: 2px dashed red;
+            cursor: pointer;
+        }
+
+        .poi-area:hover {
+            border: 2px solid red;
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+
+        .poi-marker {
+            position: absolute;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            margin-top: 20px;
+        }
+
+        label, select {
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>D&D Campaign Interactive Map</h1>
+    <p>Upload your campaign map and mark the Points of Interest (POIs).</p>
+
+    <!-- Image Upload -->
+    <input type="file" id="image-upload" accept="image/*"><br><br>
+
+    <!-- Font Selector -->
+    <label for="font-select">Choose a Font:</label>
+    <select id="font-select">
+        <option value="Arial">Arial</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+    </select><br><br>
+
+    <!-- Map Container -->
+    <div id="map-container">
+        <img id="map" src="" alt="Campaign Map" />
+    </div>
+
+    <!-- POI Marker Image Upload -->
+    <p>Upload a custom marker image for each POI:</p>
+    <input type="file" id="marker-upload" accept="image/*"><br><br>
+
+    <script>
+        const map = document.getElementById('map');
+        const imageUpload = document.getElementById('image-upload');
+        const markerUpload = document.getElementById('marker-upload');
+        const mapContainer = document.getElementById('map-container');
+        let startX, startY, isDrawing = false;
+        let currentMarker = null;
+
+        // Handle map image upload
+        imageUpload.addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                map.src = event.target.result;
+                map.style.cursor = 'crosshair';
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // Handle custom marker image upload
+        let customMarkerURL = '';
+        markerUpload.addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                customMarkerURL = event.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // Start drawing a rectangle to mark a POI
+        map.addEventListener('mousedown', function (e) {
+            startX = e.pageX - mapContainer.offsetLeft;
+            startY = e.pageY - mapContainer.offsetTop;
+            isDrawing = true;
+
+            currentMarker = document.createElement('div');
+            currentMarker.classList.add('poi-area');
+            currentMarker.style.left = startX + 'px';
+            currentMarker.style.top = startY + 'px';
+
+            mapContainer.appendChild(currentMarker);
+        });
+
+        // Draw the rectangle as the user moves the mouse
+        map.addEventListener('mousemove', function (e) {
+            if (!isDrawing) return;
+
+            const currentX = e.pageX - mapContainer.offsetLeft;
+            const currentY = e.pageY - mapContainer.offsetTop;
+            const width = currentX - startX;
+            const height = currentY - startY;
+
+            currentMarker.style.width = Math.abs(width) + 'px';
+            currentMarker.style.height = Math.abs(height) + 'px';
+            currentMarker.style.left = (width < 0 ? currentX : startX) + 'px';
+            currentMarker.style.top = (height < 0 ? currentY : startY) + 'px';
+        });
+
+        // Finish drawing and add a custom marker
+        map.addEventListener('mouseup', function () {
+            isDrawing = false;
+
+            if (customMarkerURL) {
+                const markerImage = document.createElement('img');
+                markerImage.src = customMarkerURL;
+                markerImage.classList.add('poi-marker');
+                markerImage.style.left = currentMarker.style.left;
+                markerImage.style.top = currentMarker.style.top;
+                markerImage.style.width = currentMarker.style.width;
+                markerImage.style.height = currentMarker.style.height;
+                mapContainer.appendChild(markerImage);
+
+                // Remove the dashed rectangle and replace with the image
+                currentMarker.remove();
+            }
+        });
+
+        // Change Font Style
+        const fontSelect = document.getElementById('font-select');
+        fontSelect.addEventListener('change', function () {
+            document.body.style.fontFamily = fontSelect.value;
+        });
+    </script>
+</body>
+</html>
