@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Campaign Map with Freeform POIs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2b2b2b;
+            color: #ddd;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #fff;
+        }
+
+        #map-container {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #444;
+            margin-top: 20px;
+        }
+
+        #map {
+            max-width: 90%;
+            height: auto;
+            cursor: crosshair;
+            border: 2px solid #555;
+        }
+
+        .poi-area {
+            position: absolute;
+            background-color: rgba(255, 85, 85, 0.3);
+            border: 2px dashed #ff5555;
+            cursor: pointer;
+        }
+
+        .poi-area:hover {
+            background-color: rgba(255, 85, 85, 0.5);
+        }
+
+        .poi-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+
+        .marker-section {
+            margin-top: 20px;
+        }
+
+        .highlight-color-picker {
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        input[type="file"], input[type="color"], label, select {
+            margin-top: 10px;
+            background-color: #444;
+            color: #ddd;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        input[type="file"]::file-selector-button {
+            background-color: #666;
+            color: #ddd;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>D&D Campaign Interactive Map</h1>
+    <p>Upload your map and draw areas. Upload custom markers for each POI, and set a custom highlight color.</p>
+
+    <!-- Map Upload -->
+    <input type="file" id="image-upload" accept="image/*"><br><br>
+
+    <!-- Map Container -->
+    <div id="map-container">
+        <img id="map" src="" alt="Campaign Map" />
+    </div>
+
+    <!-- Section for uploading markers for each POI -->
+    <div id="marker-section-container" class="marker-section">
+        <h2>Markers for Points of Interest (POIs)</h2>
+    </div>
+
+    <script>
+        const map = document.getElementById('map');
+        const imageUpload = document.getElementById('image-upload');
+        const mapContainer = document.getElementById('map-container');
+        const markerSectionContainer = document.getElementById('marker-section-container');
+        let isDrawing = false;
+        let points = [];
+        let poiAreas = [];
+        let currentHighlightColor = '#ff5555';
+
+        // Handle map image upload
+        imageUpload.addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                map.src = event.target.result;
+                map.style.cursor = 'crosshair';
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // Start drawing a freeform area on the map
+        map.addEventListener('mousedown', function (e) {
+            isDrawing = true;
+            points = [];
+            points.push([e.pageX - mapContainer.offsetLeft, e.pageY - mapContainer.offsetTop]);
+        });
+
+        // Track the mouse movements to draw the area
+        map.addEventListener('mousemove', function (e) {
+            if (!isDrawing) return;
+            points.push([e.pageX - mapContainer.offsetLeft, e.pageY - mapContainer.offsetTop]);
+            drawPOIArea(points);
+        });
+
+        // Finish the drawing and create a custom marker section
+        map.addEventListener('mouseup', function () {
+            isDrawing = false;
+
+            if (points.length > 2) {
+                const centerPoint = getPolygonCenter(points);
+                const poiIndex = poiAreas.length;
+
+                // Add the POI area to the list
+                const poiArea = { points: points, marker: null, highlightColor: currentHighlightColor };
+                poiAreas.push(poiArea);
+
+                // Create the marker section for this POI
+                createMarkerSection(poiIndex, centerPoint);
+            }
+        });
+
+        // Draw the POI area as a freeform polygon
+        function drawPOIArea(points) {
+            const existingArea = document.querySelector('.poi-area');
+            if (existingArea) {
+                existingArea.remove();
+            }
+
+            const poiArea = document.createElement('div');
+            poiArea.classList.add('poi-area');
+            poiArea.style.clipPath = `polygon(${points.map(p => `${p[0]}px ${p[1]}px`).join(', ')})`;
+            mapContainer.appendChild(poiArea);
+        }
+
+        // Calculate the center point of a polygon (for placing custom markers)
+        function getPolygonCenter(points) {
+            let sumX = 0, sumY = 0;
+            points.forEach(point => {
+                sumX += point[0];
+                sumY += point[1];
+            });
+            return [sumX / points.length, sumY / points.length];
+        }
+
+        // Create a section for uploading custom markers and selecting highlight color for each POI
+        function createMarkerSection(poiIndex, centerPoint) {
+            const markerSection = document.createElement('div');
+            markerSection.innerHTML = `
+                <h3>POI ${poiIndex + 1}</h3>
+                <label>Upload Custom Marker:</label>
+                <input type="file" class="marker-upload" data-poi-index="${poiIndex}" accept="image/*"><br>
+                <label>Highlight Color:</label>
+                <input type="color" class="highlight-color-picker" value="#ff5555" data-poi-index="${poiIndex}">
+            `;
+            markerSectionContainer.appendChild(markerSection);
+
+            // Handle marker image upload
+            markerSection.querySelector('.marker-upload').addEventListener('change', function (e) {
+                const poiIndex = e.target.getAttribute('data-poi-index');
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const marker = document.createElement('img');
+                    marker.src = event.target.result;
+                    marker.classList.add('poi-marker');
+                    marker.style.left = centerPoint[0] + 'px';
+                    marker.style.top = centerPoint[1] + 'px';
+                    mapContainer.appendChild(marker);
+                    poiAreas[poiIndex].marker = marker;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            });
+
+            // Handle highlight color changes
+            markerSection.querySelector('.highlight-color-picker').addEventListener('input', function (e) {
+                const poiIndex = e.target.getAttribute('data-poi-index');
+                const newColor = e.target.value;
+                poiAreas[poiIndex].highlightColor = newColor;
+
+                // Update the highlight color of the drawn area
+                document.querySelector('.poi-area').style.backgroundColor = newColor;
+            });
+        }
+    </script>
+</body>
+</html>
